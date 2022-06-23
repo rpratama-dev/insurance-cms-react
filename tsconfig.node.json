@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "target": "ES6",
+    "lib": ["DOM", "DOM.Iterable", "ESNext", "ES6"]
+  },
+  "include": ["vite.config.ts"]
+}

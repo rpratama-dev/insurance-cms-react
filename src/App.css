@@ -1,0 +1,71 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+label {
+  font-weight: 400;
+}
+
+label:not(.form-check-label):not(.custom-file-label) {
+  font-weight: 400;
+}
+
+[class^='MuiFormHelperText'] {
+  margin-left: 0 !important;
+}
+
+.MuiInputLabel-root.MyApp {
+  top: -8px !important;
+}
+
+.MuiInputLabel-root.MyApp.MuiInputLabel-shrink {
+  top: 0 !important;
+}
+
+/* ANTD OVERIDE CSS */
+.ant-message {
+  z-index: 10000 !important;
+}
+
+.ant-message .anticon {
+  top: -2.5px !important;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+button {
+  font-size: calc(10px + 2vmin);
+}
