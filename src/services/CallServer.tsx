@@ -11,6 +11,26 @@ export type TOption = {
   query?: object;
   formData?: boolean;
 };
+export type MetaPagination = {
+  total: number;
+  per_page: number;
+  current_page: number;
+  last_page: number;
+  first_page: number;
+  first_page_url: string | null;
+  last_page_url: string | null;
+  next_page_url: string | null;
+  previous_page_url: string | null;
+};
+
+export type ResponsePagination<Data extends object> = {
+  message: string;
+  data: {
+    meta: MetaPagination;
+    rows: Data[];
+  };
+  status: 'success' | 'fail';
+};
 
 export type APIResponseData<Data extends object> = {
   message: string;

@@ -162,7 +162,7 @@ function FormInputResource(props: IProps) {
     });
     console.log({ validator });
 
-    resourceStore.handleChangeError(newErrMsg);
+    resourceStore.setErrMsg(newErrMsg);
   };
 
   const handleChange = (value: React.Key | boolean | null, name: string) => {
@@ -189,7 +189,7 @@ function FormInputResource(props: IProps) {
       default:
         break;
     }
-    resourceStore.handleChangePayload(newPayload);
+    resourceStore.setPayload(newPayload);
     validate(field, value);
   };
 

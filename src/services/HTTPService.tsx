@@ -1,17 +1,17 @@
-import CallServer, { APIResponseData, TUrl } from './CallServer';
+import CallServer, { APIResponseData, ResponsePagination, TUrl } from './CallServer';
 
 type TQuery = {
   [key: string]: string | number | boolean;
 };
 
-type TQueryIndex = {
-  page: number;
-  perPage: number;
-  columnOrder?: string;
-  orderBy?: string;
+export type TQueryIndex = {
+  page?: number;
+  perPage?: number;
   keyword?: string;
-  isPagination?: boolean;
+  orderBy?: string;
+  sortBy?: 'asc' | 'desc';
   isActive?: boolean;
+  isPagination?: boolean;
 };
 
 class HTTPService extends CallServer {
@@ -22,19 +22,13 @@ class HTTPService extends CallServer {
     this.routeTarget = routeTarget;
   }
 
-  async index(queries: TQueryIndex): Promise<APIResponseData<any>> {
-    const { columnOrder, orderBy, page, perPage, ...other } = queries;
-    const qr: TQueryIndex = { page, perPage, columnOrder, orderBy };
-    if (other.keyword) qr.keyword = other.keyword;
-    if (typeof other.isActive === 'boolean') qr.isActive = other.isActive;
-    if (typeof other.isPagination === 'boolean') qr.isPagination = other.isPagination;
-
-    const { data: response } = await this.get(this.routeTarget, { query: qr });
+  async index(queries: TQueryIndex): Promise<ResponsePagination<any>> {
+    const { data: response } = await this.get(this.routeTarget, { query: queries });
     if (response.status !== 'success') throw new Error('Response error: HTTPService.index');
     return response;
   }
 
-  async show(itemID: string | number, query?: TQuery) {
+  async show(itemID: string | number, query?: TQuery): Promise<APIResponseData<any>> {
     const { data: response } = await this.get(this.routeTarget, { query, param: String(itemID) });
     if (response.status !== 'success') throw new Error('Response error: HTTPService.show');
     return response;

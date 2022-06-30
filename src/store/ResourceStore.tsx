@@ -1,8 +1,9 @@
-import { action, makeObservable, observable, computed } from 'mobx';
+import { action, makeObservable, computed } from 'mobx';
 import { FormConfig } from '../types/default';
 import Joi from 'joi';
 import BaseStore from './BaseStore';
 import { ReplaceTypes } from '../helper/ObjectManipulation';
+import { ResponsePagination } from '../services/CallServer';
 
 interface ISOpen {
   formResource: boolean;
@@ -21,6 +22,24 @@ type TErrMsg = ReplaceTypes<IPayload, string>;
 
 type TSchema = {
   [key in keyof IPayload]: Joi.AnySchema;
+};
+
+type Row = {
+  id: string | number;
+  uuid: string;
+  is_parent: boolean;
+  parent_id: string | number;
+  code: string;
+  name_id: string;
+  name_en: string;
+  description: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  created_by: string;
+  updated_by: string;
+  deleted_by: string | null;
 };
 
 const SCHEMA: TSchema = {
@@ -56,11 +75,7 @@ const INIT = {
   description: '',
 };
 
-class ResourceStore extends BaseStore {
-  public payload: IPayload;
-  public schema: TSchema;
-  public errMsg: TErrMsg;
-
+class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
   constructor() {
     super({ routeTarget: 'RESOURCE' });
     this.payload = { ...INIT };
@@ -68,9 +83,6 @@ class ResourceStore extends BaseStore {
     this.schema = SCHEMA;
 
     makeObservable(this, {
-      payload: observable,
-      errMsg: observable,
-
       isPayloadValid: computed,
       formConfig: computed,
 
@@ -79,8 +91,6 @@ class ResourceStore extends BaseStore {
       handleOpen: action,
       handleClose: action,
       handleOK: action,
-      handleChangePayload: action,
-      handleChangeError: action,
       validatePayload: action,
       validation: action,
     });
@@ -125,14 +135,6 @@ class ResourceStore extends BaseStore {
     }
   }
 
-  handleChangePayload(payload: IPayload) {
-    this.payload = payload;
-  }
-
-  handleChangeError(errMsg: TErrMsg) {
-    this.errMsg = errMsg;
-  }
-
   validation(): boolean {
     const { isValid, objError } = this.validatePayload(this.schema, this.payload);
     this.errMsg = objError;
@@ -143,8 +145,11 @@ class ResourceStore extends BaseStore {
   async getAll() {
     try {
       this.setLoading(true, 'fetch');
-      const data = await this.httpService.index({ page: 1, perPage: 10 });
-      console.log(data);
+      const response: ResponsePagination<Row> = await this.httpService.index({ page: 1, perPage: 10 });
+      const { meta, rows } = response.data;
+      this.setRows(rows);
+      this.setMeta(meta);
+      console.log(this.rows);
     } catch (error) {
       // console.error('error index', error);
     } finally {
@@ -160,8 +165,7 @@ class ResourceStore extends BaseStore {
       this.throwMessage().success('create', 'Success add new resources');
     } catch (error) {
       // console.error('error index', error);
-    } finally {
-      this.setLoading(false, 'create');
+      this.setLoading(false, 'create', true);
     }
   }
 }

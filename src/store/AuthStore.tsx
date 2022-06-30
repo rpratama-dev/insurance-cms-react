@@ -1,6 +1,7 @@
 import Joi from 'joi';
 import { action, makeObservable, observable } from 'mobx';
 import { APIResponseData } from '../services/CallServer';
+import MyStorage from '../utils/MyStorage';
 import BaseStore from './BaseStore';
 
 type Session = {
@@ -43,7 +44,24 @@ type TSchema = {
   [key in keyof ErrMsg]: Joi.AnySchema;
 };
 
-class AuthStore extends BaseStore {
+const SCHEMA = {
+  email: Joi.string().email({ tlds: false }).messages({
+    'string.empty': 'Email is required',
+    'string.email': 'Email must be valid',
+  }),
+  password: Joi.string().messages({
+    'string.empty': 'Password is required',
+  }),
+  remember_me_token: Joi.boolean(),
+};
+
+const INIT_PAYLOAD = {
+  email: '',
+  password: '',
+  remember_me_token: false,
+};
+
+class AuthStore extends BaseStore<object, Payload, TSchema, ErrMsg> {
   public session: Session = {
     isLogedIn: false,
     credentials: {
@@ -58,30 +76,13 @@ class AuthStore extends BaseStore {
     },
     idToken: '',
   };
-  public payload: Payload = {
-    email: '',
-    password: '',
-    remember_me_token: false,
-  };
-  public errMsg: ErrMsg = {
-    email: '',
-    password: '',
-    remember_me_token: '',
-  };
-  public schema: TSchema = {
-    email: Joi.string().email({ tlds: false }).messages({
-      'string.empty': 'Email is required',
-      'string.email': 'Email must be valid',
-    }),
-    password: Joi.string().messages({
-      'string.empty': 'Password is required',
-    }),
-    remember_me_token: Joi.boolean(),
-  };
   public errorResponse = '';
 
   constructor() {
     super({ routeTarget: 'AUTH' });
+    this.schema = SCHEMA;
+    this.payload = { ...INIT_PAYLOAD };
+    this.errMsg = { ...INIT_PAYLOAD, remember_me_token: '' };
     makeObservable(this, {
       session: observable,
       payload: observable,
@@ -133,13 +134,13 @@ class AuthStore extends BaseStore {
         idToken: response.data.auth.token,
       };
       this.session = session;
+      MyStorage.setAccessToken(session.idToken);
       this.throwMessage().success('create', `Access Granted. Welcome ${session.credentials.name}`);
     } catch (error: any) {
       if (error?.response) {
         this.errorResponse = error.response.data.message;
       }
-    } finally {
-      this.setLoading(false, 'create');
+      this.setLoading(false, 'create', true);
     }
   }
 }
