@@ -1,9 +1,10 @@
-import { action, makeObservable, computed } from 'mobx';
+import { action, makeObservable, computed, observable } from 'mobx';
 import { FormConfig } from '../types/default';
 import Joi from 'joi';
 import BaseStore from './BaseStore';
 import { ReplaceTypes } from '../helper/ObjectManipulation';
-import { ResponsePagination } from '../services/CallServer';
+import { APIResponseData, ResponsePagination } from '../services/CallServer';
+import { GridColDef } from '@mui/x-data-grid';
 
 interface ISOpen {
   formResource: boolean;
@@ -76,15 +77,22 @@ const INIT = {
 };
 
 class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
+  public parent: Row[];
+
   constructor() {
     super({ routeTarget: 'RESOURCE' });
     this.payload = { ...INIT };
     this.errMsg = { ...INIT, is_parent: '', parent_id: '' };
     this.schema = SCHEMA;
+    this.parent = [];
 
     makeObservable(this, {
+      parent: observable,
+
       isPayloadValid: computed,
       formConfig: computed,
+      columns: computed,
+      parentList: computed,
 
       getAll: action,
       create: action,
@@ -93,7 +101,36 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
       handleOK: action,
       validatePayload: action,
       validation: action,
+      setParent: action,
     });
+  }
+
+  get columns(): GridColDef[] {
+    const cols: GridColDef[] = [
+      { field: 'id', headerName: 'ID' },
+      { field: 'created_at', headerName: 'Create At' },
+      { field: 'is_parent', headerName: 'Is Parent?' },
+      { field: 'parent_id', headerName: 'Parent ID' },
+      { field: 'code', headerName: 'Code' },
+      { field: 'name_id', headerName: 'Name ID' },
+      { field: 'name_en', headerName: 'Name EN' },
+      { field: 'description', headerName: 'Description' },
+      { field: 'is_active', headerName: 'Active' },
+      { field: 'updated_at', headerName: 'Update AT' },
+      { field: 'uuid', headerName: 'UUID' },
+      // {
+      //   field: 'fullName',
+      //   headerName: 'Full name',
+      //   description: 'This column has a value getter and is not sortable.',
+      //   sortable: false,
+      //   width: 160,
+      //   // valueGetter: (params: GridValueGetterParams) => `${params.row.firstName || ''} ${params.row.lastName || ''}`,
+      //   renderCell: (params: GridRenderCellParams) => {
+      //     return <h6>{params.row.firstName + '-' + params.row.age || ''}</h6>;
+      //   },
+      // },
+    ];
+    return cols;
   }
 
   get formConfig(): FormConfig {
@@ -107,6 +144,13 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
     };
   }
 
+  get parentList() {
+    const temps = this.parent.map((el) => {
+      return { value: el.id, label: `${el.id} - ${el.name_en}` };
+    });
+    return temps;
+  }
+
   get isPayloadValid(): boolean {
     const isValid = this.checkErrorMsg(this.errMsg);
     return isValid;
@@ -115,6 +159,10 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
   get activeModal(): ISOpen {
     const actives = this.isOpen as any;
     return actives as ISOpen;
+  }
+
+  setParent(rows: Row[]) {
+    this.parent = rows;
   }
 
   handleOpen(key: keyof ISOpen) {
@@ -131,7 +179,6 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
     const isValid = this.validation();
     if (isValid) {
       await this.create();
-      this.handleClose('formResource');
     }
   }
 
@@ -149,7 +196,6 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
       const { meta, rows } = response.data;
       this.setRows(rows);
       this.setMeta(meta);
-      console.log(this.rows);
     } catch (error) {
       // console.error('error index', error);
     } finally {
@@ -160,12 +206,33 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
   async create() {
     try {
       this.setLoading(true, 'create');
-      const data = await this.httpService.store(this.payload);
-      console.log(data);
+      await this.httpService.store(this.payload);
       this.throwMessage().success('create', 'Success add new resources');
+      this.handleClose('formResource');
+    } catch (error) {
+      const err = error as any;
+      if (err?.response) {
+        const { data } = err.response.data;
+        if (data.errorCode === 'VALIDATION_FAILURE') {
+          this.setErrMsg({ ...this.errMsg, ...data.errMsg });
+        }
+        console.log(data);
+      }
+      // console.error('error index', error);
+      this.throwMessage().warning('create', 'Failed add new resource');
+      this.setLoading(false, 'create');
+    }
+  }
+
+  async getParent() {
+    try {
+      this.setLoading(true, 'fetch');
+      const resp = (await this.httpService.index({ isPagination: false, isParent: true })) as APIResponseData<Row[]>;
+      this.setParent(resp.data);
     } catch (error) {
       // console.error('error index', error);
-      this.setLoading(false, 'create', true);
+    } finally {
+      this.setLoading(false, 'fetch', true);
     }
   }
 }

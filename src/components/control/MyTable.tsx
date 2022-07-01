@@ -1,50 +1,22 @@
 import * as React from 'react';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { observer } from 'mobx-react-lite';
 
-const columns: GridColDef[] = [
-  { field: 'id', headerName: 'ID', width: 70 },
-  { field: 'firstName', headerName: 'First name', width: 130 },
-  { field: 'lastName', headerName: 'Last name', width: 130 },
-  {
-    field: 'age',
-    headerName: 'Age',
-    type: 'number',
-    width: 90,
-  },
-  {
-    field: 'fullName',
-    headerName: 'Full name',
-    description: 'This column has a value getter and is not sortable.',
-    sortable: false,
-    width: 160,
-    // valueGetter: (params: GridValueGetterParams) => `${params.row.firstName || ''} ${params.row.lastName || ''}`,
-    renderCell: (params: GridRenderCellParams) => {
-      return <h6>{params.row.firstName + '-' + params.row.age || ''}</h6>;
-    },
-  },
-];
+type Props<R extends object, C extends GridColDef> = {
+  rows: R[];
+  cols: C[];
+};
 
-const rows = [
-  { id: 1, lastName: 'Snow', firstName: 'Jon', age: 35 },
-  { id: 2, lastName: 'Lannister', firstName: 'Cersei', age: 42 },
-  { id: 3, lastName: 'Lannister', firstName: 'Jaime', age: 45 },
-  { id: 4, lastName: 'Stark', firstName: 'Arya', age: 16 },
-  { id: 5, lastName: 'Targaryen', firstName: 'Daenerys', age: null },
-  { id: 6, lastName: 'Melisandre', firstName: null, age: 150 },
-  { id: 7, lastName: 'Clifford', firstName: 'Ferrara', age: 44 },
-  { id: 8, lastName: 'Frances', firstName: 'Rossini', age: 36 },
-  { id: 9, lastName: 'Roxie', firstName: 'Harvey', age: 65 },
-];
-
-export default function MyTable() {
+function MyTable<R extends object, C extends GridColDef>(props: Props<R, C>) {
+  const { rows, cols } = props;
   return (
     <div style={{ height: 400, width: '100%' }}>
       <DataGrid
         rows={rows}
-        columns={columns}
+        columns={cols}
         pageSize={5}
         checkboxSelection
-        rowsPerPageOptions={[5, 10, 20]}
+        rowsPerPageOptions={[10, 20, 50]}
         pagination
         autoPageSize
         sortingMode='server'
@@ -59,3 +31,5 @@ export default function MyTable() {
     </div>
   );
 }
+
+export default observer(MyTable);

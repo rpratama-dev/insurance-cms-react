@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { action, makeObservable, observable } from 'mobx';
+import { action, makeObservable, observable, runInAction } from 'mobx';
 import { APIResponseData } from '../services/CallServer';
 import MyStorage from '../utils/MyStorage';
 import BaseStore from './BaseStore';
@@ -85,13 +85,14 @@ class AuthStore extends BaseStore<object, Payload, TSchema, ErrMsg> {
     this.errMsg = { ...INIT_PAYLOAD, remember_me_token: '' };
     makeObservable(this, {
       session: observable,
-      payload: observable,
       errorResponse: observable,
 
       validation: action,
       postLogin: action,
       handlePayload: action,
+      checkSession: action,
     });
+    runInAction(this.chekAuth);
   }
 
   validate(field: keyof ErrMsg, value: any) {
@@ -106,8 +107,6 @@ class AuthStore extends BaseStore<object, Payload, TSchema, ErrMsg> {
 
   validation(): boolean {
     const { isValid, objError } = this.validatePayload(this.schema, this.payload);
-    console.log({ objError });
-
     this.errMsg = objError;
     return isValid;
   }
@@ -118,9 +117,31 @@ class AuthStore extends BaseStore<object, Payload, TSchema, ErrMsg> {
 
   async handleOK() {
     const isValid = this.validation();
-    console.log({ login: 'here', isValid });
     if (isValid) {
       await this.postLogin();
+    }
+  }
+
+  chekAuth = async () => {
+    return await this.checkSession();
+  };
+
+  async checkSession() {
+    try {
+      this.setLoading(true, 'fetch');
+      const response: any = await this.httpService.index({});
+      const session: Session = {
+        isLogedIn: true,
+        credentials: response.data.user,
+        idToken: '',
+      };
+      this.session = session;
+    } catch (error: any) {
+      if (error?.response) {
+        this.errorResponse = error.response.data.message;
+      }
+    } finally {
+      this.setLoading(false, 'fetch', true);
     }
   }
 

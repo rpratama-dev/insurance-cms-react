@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { action, computed, makeObservable, observable } from 'mobx';
+import { action, computed, makeObservable, observable, toJS } from 'mobx';
 import { destroyMessage, openLoadingMessage, openSuccessMessage, openWarningMessage } from '../helper/Feedback';
 import ObjectManipulation, { ReplaceTypes } from '../helper/ObjectManipulation';
 import { MetaPagination, TUrl } from '../services/CallServer';
@@ -57,6 +57,7 @@ class BaseStore<R, P, S, E> {
       errMsg: observable,
 
       queryParam: computed,
+      dataRows: computed,
 
       setRows: action,
       setMeta: action,
@@ -67,13 +68,8 @@ class BaseStore<R, P, S, E> {
     });
   }
 
-  throwMessage() {
-    return {
-      loading: (key: KeyMessage, msg?: string) => openLoadingMessage(key, msg),
-      success: (key: KeyMessage, msg?: string) => openSuccessMessage(key, msg),
-      warning: (key: KeyMessage, msg?: string) => openWarningMessage(key, msg),
-      dismiss: (key: KeyMessage) => destroyMessage(key),
-    };
+  get dataRows(): R[] {
+    return toJS(this.rows);
   }
 
   get queryParam() {
@@ -81,6 +77,15 @@ class BaseStore<R, P, S, E> {
     if (!newFilter.page) newFilter.page = this.meta.current_page + 1;
     if (!newFilter.perPage) newFilter.perPage = this.meta.per_page;
     return newFilter;
+  }
+
+  throwMessage() {
+    return {
+      loading: (key: KeyMessage, msg?: string) => openLoadingMessage(key, msg),
+      success: (key: KeyMessage, msg?: string) => openSuccessMessage(key, msg),
+      warning: (key: KeyMessage, msg?: string) => openWarningMessage(key, msg),
+      dismiss: (key: KeyMessage) => destroyMessage(key),
+    };
   }
 
   setRows(rows: R[]) {

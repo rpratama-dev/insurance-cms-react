@@ -12,6 +12,8 @@ export type TQueryIndex = {
   sortBy?: 'asc' | 'desc';
   isActive?: boolean;
   isPagination?: boolean;
+} & {
+  [key: string]: number | boolean | string;
 };
 
 class HTTPService extends CallServer {
@@ -22,7 +24,7 @@ class HTTPService extends CallServer {
     this.routeTarget = routeTarget;
   }
 
-  async index(queries: TQueryIndex): Promise<ResponsePagination<any>> {
+  async index(queries: TQueryIndex): Promise<ResponsePagination<any> | APIResponseData<any>> {
     const { data: response } = await this.get(this.routeTarget, { query: queries });
     if (response.status !== 'success') throw new Error('Response error: HTTPService.index');
     return response;

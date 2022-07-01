@@ -19,15 +19,15 @@ const MyAutocomplete = (props: IProps): React.ReactElement => {
   return (
     <Autocomplete
       disablePortal
-      size="small"
+      size='small'
       options={prop.options}
-      value={prop.options.find((el) => el.value === prop.value) || null}
+      value={prop.options.find((el) => String(el.value) === String(prop.value)) || null}
       onChange={(_, value) => prop.handleChange(value, prop.name)}
       renderInput={(params) => (
         <TextField {...params} error={!!prop.errMsg} helperText={prop.errMsg} label={prop.label} />
       )}
       fullWidth
-      className="w-100"
+      className='w-100'
       disabled={prop.disabled || false}
     />
   );

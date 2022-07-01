@@ -19,8 +19,8 @@ function Resource(): React.ReactElement {
 
   React.useEffect(() => {
     if (timeouts.fetchIndex) clearTimeout(timeouts.fetchIndex);
-    timeouts.fetchIndex = setTimeout(() => {
-      resourceStore.getAll();
+    timeouts.fetchIndex = setTimeout(async () => {
+      await Promise.all([resourceStore.getAll(), resourceStore.getParent()]);
     }, 1000);
   }, []);
 
@@ -31,6 +31,8 @@ function Resource(): React.ReactElement {
   const handleClickListItem = () => {
     resourceStore.handleOpen('formResource');
   };
+
+  const { dataRows = [], columns } = resourceStore;
 
   return (
     <>
@@ -64,7 +66,7 @@ function Resource(): React.ReactElement {
           </Grid>
         </div>
         <div className='card-body'>
-          <MyTable />
+          <MyTable rows={dataRows} cols={columns} />
         </div>
         <div className='card-footer'>
           Visit <a href='https://www.dropzonejs.com'>dropzone.js documentation</a> for more examples and information

@@ -9,8 +9,6 @@ function Login(): ReactElement {
   const { auth } = useStore();
 
   const handleChange = (value: string, name: string) => {
-    console.log({ value, name });
-
     auth.validate(name as keyof typeof auth.errMsg, value);
     auth.handlePayload({ ...auth.payload, [name]: value });
   };
