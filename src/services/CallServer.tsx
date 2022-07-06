@@ -84,7 +84,7 @@ class CallServer {
       for (const key in opt.query) {
         if (Object.prototype.hasOwnProperty.call(opt.query, key)) {
           const qr = opt.query as any;
-          query += `${key}=${qr[key]}&`;
+          if (typeof qr[key] === 'boolean' || qr[key]) query += `${key}=${qr[key]}&`;
         }
       }
       query = `?${query.slice(0, -1)}`;

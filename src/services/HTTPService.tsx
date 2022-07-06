@@ -13,7 +13,7 @@ export type TQueryIndex = {
   isActive?: boolean;
   isPagination?: boolean;
 } & {
-  [key: string]: number | boolean | string;
+  [key: string]: number | boolean | string | undefined;
 };
 
 class HTTPService extends CallServer {
@@ -51,6 +51,12 @@ class HTTPService extends CallServer {
   async update(payload: any, itemID: string | number, query?: TQuery) {
     const { data: response } = await this.put(this.routeTarget, payload, { query, param: String(itemID) });
     if (response.status !== 'success') throw new Error('Response error: HTTPService.update');
+    return response;
+  }
+
+  async updatePatch(payload: any, itemID: string | number, query?: TQuery) {
+    const { data: response } = await this.patch(this.routeTarget, payload, { query, param: String(itemID) });
+    if (response.status !== 'success') throw new Error('Response error: HTTPService.updatePatch');
     return response;
   }
 

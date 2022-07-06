@@ -1,14 +1,16 @@
 import * as React from 'react';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { DataGrid, GridSortModel, GridColDef } from '@mui/x-data-grid';
 import { observer } from 'mobx-react-lite';
 
 type Props<R extends object, C extends GridColDef> = {
   rows: R[];
   cols: C[];
+  handleSort: (model: GridSortModel) => void;
 };
 
 function MyTable<R extends object, C extends GridColDef>(props: Props<R, C>) {
-  const { rows, cols } = props;
+  const { rows, cols, handleSort } = props;
+
   return (
     <div style={{ height: 400, width: '100%' }}>
       <DataGrid
@@ -25,7 +27,7 @@ function MyTable<R extends object, C extends GridColDef>(props: Props<R, C>) {
         onPageSizeChange={(pageSize, details) => console.log({ pageSize, details })}
         onRowDoubleClick={(params) => console.log({ params })}
         onSelectionModelChange={(selectionModel, details) => console.log({ selectionModel, details })}
-        onSortModelChange={(model, details) => console.log({ model, details })}
+        onSortModelChange={(model) => handleSort(model)}
         onFilterModelChange={(model, details) => console.log({ model, details })}
       />
     </div>

@@ -1,5 +1,6 @@
 import Joi from 'joi';
 import { action, computed, makeObservable, observable, toJS } from 'mobx';
+import { TET, TFT, TPG, TST } from '../components/control/AntdTable';
 import { destroyMessage, openLoadingMessage, openSuccessMessage, openWarningMessage } from '../helper/Feedback';
 import ObjectManipulation, { ReplaceTypes } from '../helper/ObjectManipulation';
 import { MetaPagination, TUrl } from '../services/CallServer';
@@ -9,6 +10,10 @@ type TOpen = Record<string, boolean>;
 type KeyMessage = 'fetch' | 'create' | 'update';
 type TParams = {
   routeTarget: TUrl;
+};
+type DefaultRows = {
+  id: string | number;
+  uuid: string;
 };
 
 const initMeta: MetaPagination = {
@@ -23,7 +28,7 @@ const initMeta: MetaPagination = {
   previous_page_url: null,
 };
 
-class BaseStore<R, P, S, E> {
+class BaseStore<R extends DefaultRows, P, S, E> {
   public isOpen: TOpen;
   public loading = false;
   public httpService: HTTPService;
@@ -45,7 +50,7 @@ class BaseStore<R, P, S, E> {
     this.loading = false;
     this.rows = [];
     this.meta = { ...initMeta };
-    this.filters = {};
+    this.filters = { page: 1, perPage: 10 };
 
     makeObservable(this, {
       isOpen: observable,
@@ -100,6 +105,10 @@ class BaseStore<R, P, S, E> {
     this.filters = filters;
   }
 
+  handleRefresh() {
+    this.setFilters({ page: 1, perPage: 10 });
+  }
+
   setLoading(value: boolean, key: KeyMessage, dismiss?: boolean) {
     if (value) this.throwMessage().loading(key || 'loading', 'Please wait...');
     else if (!value && dismiss) {
@@ -115,6 +124,61 @@ class BaseStore<R, P, S, E> {
 
   setErrMsg(errMsg: E) {
     this.errMsg = errMsg;
+  }
+
+  onChangeTable<R extends object>(pg: TPG, ft: TFT, st: TST<R>, et: TET<R>) {
+    console.log({ pg, ft, et, st });
+    switch (et.action) {
+      case 'paginate': {
+        const { current, pageSize } = pg;
+        this.setFilters({ ...this.filters, page: current || 1, perPage: pageSize });
+        break;
+      }
+      case 'filter': {
+        if (Array.isArray(ft.is_parent) && ft.is_parent.length < 2) {
+          this.setFilters({ ...this.filters, page: 1, isParent: ft.is_parent?.[0] as boolean });
+        } else this.setFilters({ ...this.filters, page: 1, isParent: undefined });
+        break;
+      }
+      case 'sort': {
+        if (!Array.isArray(st)) {
+          const { field, order } = st;
+          const newFilter = { ...this.filters, page: 1 };
+          if (field && order) {
+            newFilter.sortBy = order.slice(0, -3) as 'asc' | 'desc' | undefined;
+            newFilter.orderBy = Array.isArray(field) ? field[0] : field;
+          } else {
+            delete newFilter.sortBy;
+            delete newFilter.orderBy;
+          }
+          this.setFilters(newFilter);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  async pathcStatus(uuid: string, is_active: boolean) {
+    try {
+      this.setLoading(true, 'create');
+      await this.httpService.updatePatch({ is_active }, uuid);
+      const newRows = this.rows.map((el) => {
+        if (el.uuid === uuid) {
+          const temps = { ...el, is_active };
+          return temps;
+        }
+        return el;
+      });
+      this.setRows(newRows);
+      this.throwMessage().success('create', 'Success update status resources');
+    } catch (error) {
+      // console.error('error index', error);
+      this.throwMessage().warning('create', 'Failed update status resource');
+    } finally {
+      this.setLoading(false, 'update', true);
+    }
   }
 
   checkErrorMsg<T extends object>(errMsg: T): boolean {

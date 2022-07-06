@@ -1,17 +1,19 @@
 import React from 'react';
 import { Button, Grid, IconButton, TextField, Tooltip } from '@mui/material';
 import { GridSearchIcon } from '@mui/x-data-grid';
-import MyTable from '../../../components/control/MyTable';
 import FormInputResource from '../../../components/display/resources/FormInputResource';
 import { observer } from 'mobx-react-lite';
 import { useStore } from '../../../store/StoreProvider';
+import AntdTable from '../../../components/control/AntdTable';
 
 type Timeouts = {
   fetchIndex: any;
+  fetchAll: any;
 };
 
 const timeouts: Timeouts = {
   fetchIndex: 0,
+  fetchAll: 0,
 };
 
 function Resource(): React.ReactElement {
@@ -24,15 +26,20 @@ function Resource(): React.ReactElement {
     }, 1000);
   }, []);
 
+  React.useEffect(() => {
+    if (timeouts.fetchAll) clearTimeout(timeouts.fetchAll);
+    timeouts.fetchAll = setTimeout(async () => {
+      await Promise.all([resourceStore.getAll()]);
+    }, 1000);
+  }, [resourceStore.filters]);
+
   const handleRefresh = async () => {
-    await resourceStore.getAll();
+    resourceStore.handleRefresh();
   };
 
   const handleClickListItem = () => {
     resourceStore.handleOpen('formResource');
   };
-
-  const { dataRows = [], columns } = resourceStore;
 
   return (
     <>
@@ -66,7 +73,8 @@ function Resource(): React.ReactElement {
           </Grid>
         </div>
         <div className='card-body'>
-          <MyTable rows={dataRows} cols={columns} />
+          <AntdTable {...resourceStore.tableConfig} />
+          {/* <MyTable {...resourceStore.tableConfig} /> */}
         </div>
         <div className='card-footer'>
           Visit <a href='https://www.dropzonejs.com'>dropzone.js documentation</a> for more examples and information

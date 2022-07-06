@@ -4,7 +4,9 @@ import Joi from 'joi';
 import BaseStore from './BaseStore';
 import { ReplaceTypes } from '../helper/ObjectManipulation';
 import { APIResponseData, ResponsePagination } from '../services/CallServer';
-import { GridColDef } from '@mui/x-data-grid';
+import { Tag, Switch } from 'antd';
+import { TableConfig } from '../components/control/AntdTable';
+import { ColumnsType } from 'antd/lib/table';
 
 interface ISOpen {
   formResource: boolean;
@@ -25,22 +27,27 @@ type TSchema = {
   [key in keyof IPayload]: Joi.AnySchema;
 };
 
-type Row = {
+type BaseRows = {
   id: string | number;
   uuid: string;
-  is_parent: boolean;
-  parent_id: string | number;
   code: string;
   name_id: string;
   name_en: string;
-  description: string;
   is_active: boolean;
+};
+
+type Row = BaseRows & {
+  is_parent: boolean;
+  parent_id: string | number;
+  description: string;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
   created_by: string;
   updated_by: string;
   deleted_by: string | null;
+  childs: BaseRows[];
+  parent: BaseRows;
 };
 
 const SCHEMA: TSchema = {
@@ -91,6 +98,7 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
 
       isPayloadValid: computed,
       formConfig: computed,
+      tableConfig: computed,
       columns: computed,
       parentList: computed,
 
@@ -105,30 +113,73 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
     });
   }
 
-  get columns(): GridColDef[] {
-    const cols: GridColDef[] = [
-      { field: 'id', headerName: 'ID' },
-      { field: 'created_at', headerName: 'Create At' },
-      { field: 'is_parent', headerName: 'Is Parent?' },
-      { field: 'parent_id', headerName: 'Parent ID' },
-      { field: 'code', headerName: 'Code' },
-      { field: 'name_id', headerName: 'Name ID' },
-      { field: 'name_en', headerName: 'Name EN' },
-      { field: 'description', headerName: 'Description' },
-      { field: 'is_active', headerName: 'Active' },
-      { field: 'updated_at', headerName: 'Update AT' },
-      { field: 'uuid', headerName: 'UUID' },
-      // {
-      //   field: 'fullName',
-      //   headerName: 'Full name',
-      //   description: 'This column has a value getter and is not sortable.',
-      //   sortable: false,
-      //   width: 160,
-      //   // valueGetter: (params: GridValueGetterParams) => `${params.row.firstName || ''} ${params.row.lastName || ''}`,
-      //   renderCell: (params: GridRenderCellParams) => {
-      //     return <h6>{params.row.firstName + '-' + params.row.age || ''}</h6>;
-      //   },
-      // },
+  get columns(): ColumnsType<Row> {
+    const cols: ColumnsType<Row> = [
+      {
+        key: 'id',
+        dataIndex: 'id',
+        width: 100,
+        title: 'ID',
+        fixed: 'left',
+        sorter: true,
+        sortDirections: ['descend', 'ascend'],
+      },
+      {
+        key: 'created_at',
+        dataIndex: 'created_at',
+        title: 'Created At',
+        sorter: true,
+        render: (value) => {
+          return value.slice(0, 10).split('-').reverse().join('-');
+        },
+      },
+      {
+        key: 'is_parent',
+        dataIndex: 'is_parent',
+        title: 'Is Parent?',
+        sorter: true,
+        filters: [
+          {
+            text: 'Yes',
+            value: true,
+          },
+          {
+            text: 'No',
+            value: false,
+          },
+        ],
+        render: (value) => <Tag color={value ? 'blue' : 'default'}>{value ? 'Yes' : 'No'}</Tag>,
+      },
+      {
+        key: 'parent_id',
+        dataIndex: 'parent_id',
+        title: 'Parent',
+        sorter: true,
+        render: (_, row) => {
+          return row.parent?.name_en || '-';
+        },
+      },
+      { key: 'code', dataIndex: 'code', title: 'Code', width: 160, sorter: true },
+      { key: 'name_id', dataIndex: 'name_id', title: 'Name ID', width: 160, sorter: true },
+      { key: 'name_en', dataIndex: 'name_en', title: 'Name EN', width: 160, sorter: true },
+      {
+        key: 'is_active',
+        dataIndex: 'is_active',
+        title: 'Action',
+        fixed: 'right',
+        sorter: true,
+        render: (value, row) => {
+          return (
+            <Switch
+              size='small'
+              checked={value}
+              checkedChildren='active'
+              unCheckedChildren='inactive'
+              onChange={() => this.pathcStatus(row.uuid, !value)}
+            />
+          );
+        },
+      },
     ];
     return cols;
   }
@@ -141,6 +192,19 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
       loading: this.loading,
       handleClose: () => this.handleClose('formResource'),
       handleOK: () => this.handleOK(),
+    };
+  }
+
+  get tableConfig(): TableConfig<Row> {
+    return {
+      rows: this.dataRows,
+      cols: this.columns,
+      page: this.meta?.current_page,
+      perPage: this.meta?.per_page,
+      totalRow: this.meta?.total,
+      loading: this.loading,
+      onChangePagination: console.log,
+      onChangeTable: (pg, ft, st, et) => this.onChangeTable(pg, ft, st, et),
     };
   }
 
@@ -192,7 +256,7 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
   async getAll() {
     try {
       this.setLoading(true, 'fetch');
-      const response: ResponsePagination<Row> = await this.httpService.index({ page: 1, perPage: 10 });
+      const response: ResponsePagination<Row> = await this.httpService.index(this.filters);
       const { meta, rows } = response.data;
       this.setRows(rows);
       this.setMeta(meta);
@@ -209,6 +273,7 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
       await this.httpService.store(this.payload);
       this.throwMessage().success('create', 'Success add new resources');
       this.handleClose('formResource');
+      await this.getAll();
     } catch (error) {
       const err = error as any;
       if (err?.response) {
@@ -216,10 +281,9 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
         if (data.errorCode === 'VALIDATION_FAILURE') {
           this.setErrMsg({ ...this.errMsg, ...data.errMsg });
         }
-        console.log(data);
       }
-      // console.error('error index', error);
       this.throwMessage().warning('create', 'Failed add new resource');
+    } finally {
       this.setLoading(false, 'create');
     }
   }

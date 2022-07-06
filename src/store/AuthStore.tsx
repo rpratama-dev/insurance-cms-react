@@ -4,11 +4,14 @@ import { APIResponseData } from '../services/CallServer';
 import MyStorage from '../utils/MyStorage';
 import BaseStore from './BaseStore';
 
+type DefaultRow = {
+  id: string;
+  uuid: string;
+};
+
 type Session = {
   isLogedIn: boolean;
-  credentials: {
-    id: string;
-    uuid: string;
+  credentials: DefaultRow & {
     name: string;
     email: string;
     last_login: string;
@@ -61,7 +64,7 @@ const INIT_PAYLOAD = {
   remember_me_token: false,
 };
 
-class AuthStore extends BaseStore<object, Payload, TSchema, ErrMsg> {
+class AuthStore extends BaseStore<DefaultRow, Payload, TSchema, ErrMsg> {
   public session: Session = {
     isLogedIn: false,
     credentials: {
