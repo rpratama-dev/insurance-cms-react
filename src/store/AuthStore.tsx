@@ -131,7 +131,7 @@ class AuthStore extends BaseStore<DefaultRow, Payload, TSchema, ErrMsg> {
 
   async checkSession() {
     try {
-      this.setLoading(true, 'fetch');
+      this.setLoading(true, 'loading');
       const response: any = await this.httpService.index({});
       const session: Session = {
         isLogedIn: true,
@@ -144,13 +144,13 @@ class AuthStore extends BaseStore<DefaultRow, Payload, TSchema, ErrMsg> {
         this.errorResponse = error.response.data.message;
       }
     } finally {
-      this.setLoading(false, 'fetch', true);
+      this.setLoading(false, 'loading', true);
     }
   }
 
   async postLogin() {
     try {
-      this.setLoading(true, 'create');
+      this.setLoading(true, 'loading');
       const response: APIResponseData<ResponseData> = await this.httpService.store(this.payload);
       const session: Session = {
         isLogedIn: true,
@@ -159,12 +159,12 @@ class AuthStore extends BaseStore<DefaultRow, Payload, TSchema, ErrMsg> {
       };
       this.session = session;
       MyStorage.setAccessToken(session.idToken);
-      this.throwMessage().success('create', `Access Granted. Welcome ${session.credentials.name}`);
+      this.throwMessage().success('loading', `Access Granted. Welcome ${session.credentials.name}`);
     } catch (error: any) {
       if (error?.response) {
         this.errorResponse = error.response.data.message;
       }
-      this.setLoading(false, 'create', true);
+      this.setLoading(false, 'loading', true);
     }
   }
 }

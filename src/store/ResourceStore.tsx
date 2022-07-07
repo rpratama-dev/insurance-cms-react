@@ -5,7 +5,7 @@ import BaseStore from './BaseStore';
 import { ReplaceTypes } from '../helper/ObjectManipulation';
 import { APIResponseData, ResponsePagination } from '../services/CallServer';
 import { Tag, Switch } from 'antd';
-import { TableConfig } from '../components/control/AntdTable';
+import { TableConfig } from '../components/control/table/AntdTable';
 import { ColumnsType } from 'antd/lib/table';
 
 interface ISOpen {
@@ -255,7 +255,7 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
   // HTTP Server Request
   async getAll() {
     try {
-      this.setLoading(true, 'fetch');
+      this.setLoading(true, 'loading');
       const response: ResponsePagination<Row> = await this.httpService.index(this.filters);
       const { meta, rows } = response.data;
       this.setRows(rows);
@@ -263,15 +263,15 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
     } catch (error) {
       // console.error('error index', error);
     } finally {
-      this.setLoading(false, 'fetch', true);
+      this.setLoading(false, 'loading', true);
     }
   }
 
   async create() {
     try {
-      this.setLoading(true, 'create');
+      this.setLoading(true, 'loading');
       await this.httpService.store(this.payload);
-      this.throwMessage().success('create', 'Success add new resources');
+      this.throwMessage().success('loading', 'Success add new resources');
       this.handleClose('formResource');
       await this.getAll();
     } catch (error) {
@@ -282,21 +282,21 @@ class ResourceStore extends BaseStore<Row, IPayload, TSchema, TErrMsg> {
           this.setErrMsg({ ...this.errMsg, ...data.errMsg });
         }
       }
-      this.throwMessage().warning('create', 'Failed add new resource');
+      this.throwMessage().warning('loading', 'Failed add new resource');
     } finally {
-      this.setLoading(false, 'create');
+      this.setLoading(false, 'loading');
     }
   }
 
   async getParent() {
     try {
-      this.setLoading(true, 'fetch');
+      this.setLoading(true, 'loading');
       const resp = (await this.httpService.index({ isPagination: false, isParent: true })) as APIResponseData<Row[]>;
       this.setParent(resp.data);
     } catch (error) {
       // console.error('error index', error);
     } finally {
-      this.setLoading(false, 'fetch', true);
+      this.setLoading(false, 'loading', true);
     }
   }
 }

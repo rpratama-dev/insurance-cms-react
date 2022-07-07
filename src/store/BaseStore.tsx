@@ -1,13 +1,13 @@
 import Joi from 'joi';
 import { action, computed, makeObservable, observable, toJS } from 'mobx';
-import { TET, TFT, TPG, TST } from '../components/control/AntdTable';
+import { TET, TFT, TPG, TST } from '../components/control/table/AntdTable';
 import { destroyMessage, openLoadingMessage, openSuccessMessage, openWarningMessage } from '../helper/Feedback';
 import ObjectManipulation, { ReplaceTypes } from '../helper/ObjectManipulation';
 import { MetaPagination, TUrl } from '../services/CallServer';
 import HTTPService, { TQueryIndex } from '../services/HTTPService';
 
 type TOpen = Record<string, boolean>;
-type KeyMessage = 'fetch' | 'create' | 'update';
+type KeyMessage = 'loading';
 type TParams = {
   routeTarget: TUrl;
 };
@@ -27,6 +27,8 @@ const initMeta: MetaPagination = {
   next_page_url: null,
   previous_page_url: null,
 };
+
+let myTimeout: number;
 
 class BaseStore<R extends DefaultRows, P, S, E> {
   public isOpen: TOpen;
@@ -101,11 +103,20 @@ class BaseStore<R extends DefaultRows, P, S, E> {
     this.meta = meta;
   }
 
+  handleKeyword(value: string) {
+    if (myTimeout) clearTimeout(myTimeout);
+    myTimeout = setTimeout(() => {
+      this.setFilters({ ...this.filters, keyword: value });
+    }, 1000);
+  }
+
   setFilters(filters: TQueryIndex) {
+    this.loading = true;
     this.filters = filters;
   }
 
   handleRefresh() {
+    this.setLoading(true, 'loading');
     this.setFilters({ page: 1, perPage: 10 });
   }
 
@@ -127,7 +138,7 @@ class BaseStore<R extends DefaultRows, P, S, E> {
   }
 
   onChangeTable<R extends object>(pg: TPG, ft: TFT, st: TST<R>, et: TET<R>) {
-    console.log({ pg, ft, et, st });
+    this.setLoading(true, 'loading');
     switch (et.action) {
       case 'paginate': {
         const { current, pageSize } = pg;
@@ -162,7 +173,7 @@ class BaseStore<R extends DefaultRows, P, S, E> {
 
   async pathcStatus(uuid: string, is_active: boolean) {
     try {
-      this.setLoading(true, 'create');
+      this.setLoading(true, 'loading');
       await this.httpService.updatePatch({ is_active }, uuid);
       const newRows = this.rows.map((el) => {
         if (el.uuid === uuid) {
@@ -172,12 +183,12 @@ class BaseStore<R extends DefaultRows, P, S, E> {
         return el;
       });
       this.setRows(newRows);
-      this.throwMessage().success('create', 'Success update status resources');
+      this.throwMessage().success('loading', 'Success update status resources');
     } catch (error) {
       // console.error('error index', error);
-      this.throwMessage().warning('create', 'Failed update status resource');
+      this.throwMessage().warning('loading', 'Failed update status resource');
     } finally {
-      this.setLoading(false, 'update', true);
+      this.setLoading(false, 'loading', true);
     }
   }
 
